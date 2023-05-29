@@ -34,7 +34,7 @@ args = parser.parse_args()
 global_step = 0
 global_epoch = 0
 use_cuda = torch.cuda.is_available()
-print('use_cuda: {}'.format(use_cuda))
+print('HQ use_cuda: {}'.format(use_cuda))
 
 syncnet_T = 5
 syncnet_mel_step_size = 16
@@ -93,6 +93,7 @@ class Dataset(object):
         for i in range(start_frame_num, start_frame_num + syncnet_T):
             m = self.crop_audio_window(spec, i - 2)
             if m.shape[0] != syncnet_mel_step_size:
+                print("shape[0] != syncnet_mel_step_size")
                 return None
             mels.append(m.T)
 
@@ -114,8 +115,9 @@ class Dataset(object):
         while 1:
             idx = random.randint(0, len(self.all_videos) - 1)
             vidname = self.all_videos[idx]
-            img_names = list(glob(join(vidname, '*.jpg')))
+            img_names = list(glob(join(args.data_root, "train", vidname, '*.jpg')))
             if len(img_names) <= 3 * syncnet_T:
+                print("len(img_names) <= 3 * syncnet_T", len(img_names) )
                 continue
             
             img_name = random.choice(img_names)
@@ -137,11 +139,12 @@ class Dataset(object):
                 continue
 
             try:
-                wavpath = join(vidname, "audio.wav")
+                wavpath = join(args.data_root, "train", vidname, "audio.wav")
                 wav = audio.load_wav(wavpath, hparams.sample_rate)
 
                 orig_mel = audio.melspectrogram(wav).T
             except Exception as e:
+                print("audio ex " , e)
                 continue
 
             mel = self.crop_audio_window(orig_mel.copy(), img_name)
@@ -150,7 +153,9 @@ class Dataset(object):
                 continue
 
             indiv_mels = self.get_segmented_mels(orig_mel.copy(), img_name)
-            if indiv_mels is None: continue
+            if indiv_mels is None: 
+                print("indiv_mels is None")
+                continue
 
             window = self.prepare_window(window)
             y = window.copy()
@@ -208,7 +213,7 @@ def train(device, model, disc, train_data_loader, test_data_loader, optimizer, d
         print('Starting Epoch: {}'.format(global_epoch))
         running_sync_loss, running_l1_loss, disc_loss, running_perceptual_loss = 0., 0., 0., 0.
         running_disc_real_loss, running_disc_fake_loss = 0., 0.
-        prog_bar = tqdm(enumerate(train_data_loader))
+        prog_bar = tqdm(enumerate(train_data_loader), total=len(train_data_loader))
         for step, (x, indiv_mels, mel, gt) in prog_bar:
             disc.train()
             model.train()

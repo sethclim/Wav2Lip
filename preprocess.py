@@ -47,7 +47,7 @@ def process_video_file(vfile, args, gpu_id):
 		frames.append(frame)
 	
 	vidname = os.path.basename(vfile).split('.')[0]
-	dirname = vfile.split('/')[-2]
+	dirname = "train"
 
 	fulldir = path.join(args.preprocessed_root, dirname, vidname)
 	os.makedirs(fulldir, exist_ok=True)
@@ -68,15 +68,27 @@ def process_video_file(vfile, args, gpu_id):
 
 def process_audio_file(vfile, args):
 	vidname = os.path.basename(vfile).split('.')[0]
-	dirname = vfile.split('/')[-2]
+	print("   "  + vfile)
+	dirname = "train"
 
 	fulldir = path.join(args.preprocessed_root, dirname, vidname)
+
+	print(fulldir.__str__())
 	os.makedirs(fulldir, exist_ok=True)
 
 	wavpath = path.join(fulldir, 'audio.wav')
+	print(wavpath)
 
 	command = template.format(vfile, wavpath)
-	subprocess.call(command, shell=True)
+	# subprocess.call(command, shell=True)
+	proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	proc.wait()
+	(stdout, stderr) = proc.communicate()
+
+	if proc.returncode != 0:
+		print(stderr)
+	else:
+		print("success")
 
 	
 def mp_handler(job):
@@ -91,7 +103,7 @@ def mp_handler(job):
 def main(args):
 	print('Started processing for {} with {} GPUs'.format(args.data_root, args.ngpu))
 
-	filelist = glob(path.join(args.data_root, '*/*.mp4'))
+	filelist = glob(path.join(args.data_root, '*.mp4'))
 
 	jobs = [(vfile, args, i%args.ngpu) for i, vfile in enumerate(filelist)]
 	p = ThreadPoolExecutor(args.ngpu)
@@ -99,6 +111,7 @@ def main(args):
 	_ = [r.result() for r in tqdm(as_completed(futures), total=len(futures))]
 
 	print('Dumping audios...')
+	print(filelist.count)
 
 	for vfile in tqdm(filelist):
 		try:

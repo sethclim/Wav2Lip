@@ -1,14 +1,14 @@
 from glob import glob
 import os
+import pathlib
 
 def get_image_list(data_root, split):
 	filelist = []
+	train = pathlib.Path("preprocessed/train")
 
-	with open('filelists/{}.txt'.format(split)) as f:
-		for line in f:
-			line = line.strip()
-			if ' ' in line: line = line.split()[0]
-			filelist.append(os.path.join(data_root, line))
+	for item in train.iterdir():
+		if(item.is_dir()):
+			filelist.append(item.name)
 
 	return filelist
 
@@ -85,7 +85,7 @@ hparams = HParams(
     save_optimizer_state=True,
 
     syncnet_wt=0.0, # is initially zero, will be set automatically to 0.03 later. Leads to faster convergence. 
-	syncnet_batch_size=64,
+	syncnet_batch_size=32,
 	syncnet_lr=1e-4,
 	syncnet_eval_interval=10000,
 	syncnet_checkpoint_interval=10000,

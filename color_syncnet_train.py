@@ -25,11 +25,8 @@ parser.add_argument('--checkpoint_path', help='Resumed from this checkpoint', de
 
 args = parser.parse_args()
 
-
 global_step = 0
 global_epoch = 0
-use_cuda = torch.cuda.is_available()
-print('use_cuda: {}'.format(use_cuda))
 
 syncnet_T = 5
 syncnet_mel_step_size = 16
@@ -70,8 +67,13 @@ class Dataset(object):
         while 1:
             idx = random.randint(0, len(self.all_videos) - 1)
             vidname = self.all_videos[idx]
+    
+            j = join(args.data_root, "train", vidname, '*.jpg')
 
-            img_names = list(glob(join(vidname, '*.jpg')))
+            g = glob(j)
+ 
+            img_names = list(g)
+   
             if len(img_names) <= 3 * syncnet_T:
                 continue
             img_name = random.choice(img_names)
@@ -100,6 +102,7 @@ class Dataset(object):
                 try:
                     img = cv2.resize(img, (hparams.img_size, hparams.img_size))
                 except Exception as e:
+                    print(e)
                     all_read = False
                     break
 
@@ -108,11 +111,12 @@ class Dataset(object):
             if not all_read: continue
 
             try:
-                wavpath = join(vidname, "audio.wav")
+                wavpath = join(args.data_root, "train", vidname, "audio.wav")
                 wav = audio.load_wav(wavpath, hparams.sample_rate)
 
                 orig_mel = audio.melspectrogram(wav).T
             except Exception as e:
+                print(e)
                 continue
 
             mel = self.crop_audio_window(orig_mel.copy(), img_name)
@@ -137,15 +141,18 @@ def cosine_loss(a, v, y):
 
     return loss
 
-def train(device, model, train_data_loader, test_data_loader, optimizer,
+def train(device, model, train_data_loader : data_utils.DataLoader, test_data_loader, optimizer,
           checkpoint_dir=None, checkpoint_interval=None, nepochs=None):
-
     global global_step, global_epoch
     resumed_step = global_step
     
     while global_epoch < nepochs:
         running_loss = 0.
-        prog_bar = tqdm(enumerate(train_data_loader))
+        enum : enumerate[data_utils.DataLoader]   = enumerate(train_data_loader)
+        l = list(train_data_loader)
+        prog_bar = tqdm(enum, total=len(train_data_loader))
+        print("Total ", len(train_data_loader))
+        print("global_epoch ", global_epoch)
         for step, (x, mel, y) in prog_bar:
             model.train()
             optimizer.zero_grad()
@@ -244,6 +251,9 @@ def load_checkpoint(path, model, optimizer, reset_optimizer=False):
     return model
 
 if __name__ == "__main__":
+
+    use_cuda = torch.cuda.is_available()
+    print('use_cuda: {}'.format(use_cuda))
     checkpoint_dir = args.checkpoint_dir
     checkpoint_path = args.checkpoint_path
 
@@ -253,13 +263,20 @@ if __name__ == "__main__":
     train_dataset = Dataset('train')
     test_dataset = Dataset('val')
 
+    print(len(train_dataset))
+
     train_data_loader = data_utils.DataLoader(
         train_dataset, batch_size=hparams.syncnet_batch_size, shuffle=True,
         num_workers=hparams.num_workers)
+    print("Batch size " , hparams.syncnet_batch_size)
+
+    print("Expected Num Batches " , len(train_dataset) / hparams.syncnet_batch_size)
+    print("Actual Num Batches " , len(train_data_loader))
 
     test_data_loader = data_utils.DataLoader(
         test_dataset, batch_size=hparams.syncnet_batch_size,
         num_workers=8)
+    
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
@@ -273,7 +290,7 @@ if __name__ == "__main__":
     if checkpoint_path is not None:
         load_checkpoint(checkpoint_path, model, optimizer, reset_optimizer=False)
 
-    train(device, model, train_data_loader, test_data_loader, optimizer,
+    train(device, model, train_data_loader, "", optimizer,
           checkpoint_dir=checkpoint_dir,
           checkpoint_interval=hparams.syncnet_checkpoint_interval,
           nepochs=hparams.nepochs)

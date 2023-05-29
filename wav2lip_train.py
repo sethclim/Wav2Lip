@@ -32,7 +32,7 @@ args = parser.parse_args()
 global_step = 0
 global_epoch = 0
 use_cuda = torch.cuda.is_available()
-print('use_cuda: {}'.format(use_cuda))
+print('Wav2Lip_train use_cuda: {}'.format(use_cuda))
 
 syncnet_T = 5
 syncnet_mel_step_size = 16
