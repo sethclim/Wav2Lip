@@ -30,11 +30,10 @@ parser.add_argument('--disc_checkpoint_path', help='Resume quality disc from thi
 
 args = parser.parse_args()
 
+use_cuda = torch.cuda.is_available()
 
 global_step = 0
 global_epoch = 0
-use_cuda = torch.cuda.is_available()
-print('HQ use_cuda: {}'.format(use_cuda))
 
 syncnet_T = 5
 syncnet_mel_step_size = 16
@@ -93,7 +92,6 @@ class Dataset(object):
         for i in range(start_frame_num, start_frame_num + syncnet_T):
             m = self.crop_audio_window(spec, i - 2)
             if m.shape[0] != syncnet_mel_step_size:
-                print("shape[0] != syncnet_mel_step_size")
                 return None
             mels.append(m.T)
 
@@ -154,7 +152,6 @@ class Dataset(object):
 
             indiv_mels = self.get_segmented_mels(orig_mel.copy(), img_name)
             if indiv_mels is None: 
-                print("indiv_mels is None")
                 continue
 
             window = self.prepare_window(window)
@@ -400,6 +397,8 @@ def load_checkpoint(path, model, optimizer, reset_optimizer=False, overwrite_glo
     return model
 
 if __name__ == "__main__":
+    print('use_cuda: {}'.format(use_cuda))
+
     checkpoint_dir = args.checkpoint_dir
 
     # Dataset and Dataloader setup
