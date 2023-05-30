@@ -4,7 +4,7 @@ import pathlib
 
 def get_image_list(data_root, split):
 	filelist = []
-	train = pathlib.Path("preprocessed/train")
+	train = pathlib.Path(data_root, split)
 
 	for item in train.iterdir():
 		if(item.is_dir()):

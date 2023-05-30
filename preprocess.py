@@ -25,6 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--ngpu', help='Number of GPUs across which to run in parallel', default=1, type=int)
 parser.add_argument('--batch_size', help='Single GPU Face detection batch size', default=32, type=int)
 parser.add_argument("--data_root", help="Root folder of the LRS2 dataset", required=True)
+parser.add_argument("--subset", help="sub folder to process", required=True)
 parser.add_argument("--preprocessed_root", help="Root folder of the preprocessed dataset", required=True)
 
 args = parser.parse_args()
@@ -47,7 +48,7 @@ def process_video_file(vfile, args, gpu_id):
 		frames.append(frame)
 	
 	vidname = os.path.basename(vfile).split('.')[0]
-	dirname = "train"
+	dirname = args.subset
 
 	fulldir = path.join(args.preprocessed_root, dirname, vidname)
 	os.makedirs(fulldir, exist_ok=True)
@@ -69,7 +70,7 @@ def process_video_file(vfile, args, gpu_id):
 def process_audio_file(vfile, args):
 	vidname = os.path.basename(vfile).split('.')[0]
 	print("   "  + vfile)
-	dirname = "train"
+	dirname = args.subset
 
 	fulldir = path.join(args.preprocessed_root, dirname, vidname)
 

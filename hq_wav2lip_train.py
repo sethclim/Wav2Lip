@@ -39,8 +39,10 @@ syncnet_T = 5
 syncnet_mel_step_size = 16
 
 class Dataset(object):
+
     def __init__(self, split):
         self.all_videos = get_image_list(args.data_root, split)
+        self.split = split
 
     def get_frame_id(self, frame):
         return int(basename(frame).split('.')[0])
@@ -113,7 +115,7 @@ class Dataset(object):
         while 1:
             idx = random.randint(0, len(self.all_videos) - 1)
             vidname = self.all_videos[idx]
-            img_names = list(glob(join(args.data_root, "train", vidname, '*.jpg')))
+            img_names = list(glob(join(args.data_root, self.split, vidname, '*.jpg')))
             if len(img_names) <= 3 * syncnet_T:
                 print("len(img_names) <= 3 * syncnet_T", len(img_names) )
                 continue
@@ -137,7 +139,7 @@ class Dataset(object):
                 continue
 
             try:
-                wavpath = join(args.data_root, "train", vidname, "audio.wav")
+                wavpath = join(args.data_root, self.split, vidname, "audio.wav")
                 wav = audio.load_wav(wavpath, hparams.sample_rate)
 
                 orig_mel = audio.melspectrogram(wav).T
@@ -403,7 +405,7 @@ if __name__ == "__main__":
 
     # Dataset and Dataloader setup
     train_dataset = Dataset('train')
-    test_dataset = Dataset('val')
+    test_dataset = Dataset('test')
 
     train_data_loader = data_utils.DataLoader(
         train_dataset, batch_size=hparams.batch_size, shuffle=True,
@@ -445,3 +447,4 @@ if __name__ == "__main__":
               checkpoint_dir=checkpoint_dir,
               checkpoint_interval=hparams.checkpoint_interval,
               nepochs=hparams.nepochs)
+
