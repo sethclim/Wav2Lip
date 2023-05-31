@@ -17,6 +17,7 @@ from tqdm import tqdm
 from glob import glob
 import audio
 from hparams import hparams as hp
+from hparams import get_image_list
 
 import face_detection
 
@@ -106,15 +107,20 @@ def main(args):
 
 	filelistDataRoot = glob(path.join(args.data_root, '*.mp4'))
 
-	alreadyProccedFileList = glob(path.join(args.preprocessed_root, args.subset, '*.mp4'))
+	alreadyProccedFileList = get_image_list(args.preprocessed_root, args.subset)
 
-	filelist = list(filelistDataRoot - alreadyProccedFileList)
+	fileList = []
 
-	print("filelistDataRoot ", filelistDataRoot.count)
-	print("alreadyProccedFileList ", alreadyProccedFileList.count)
-	print("filelist ", filelist.count)
+	for i in range(len(filelistDataRoot)):
+		name = filelistDataRoot[i].split(sep='\\')[1].split(sep=".")[0]
+		if name not in alreadyProccedFileList:
+			fileList.append(filelistDataRoot[i])
 
-	jobs = [(vfile, args, i%args.ngpu) for i, vfile in enumerate(filelist)]
+	print("filelistDataRoot ", len(filelistDataRoot))
+	print("alreadyProccedFileList ", len(alreadyProccedFileList))
+	print("filelist ", len(fileList))
+
+	jobs = [(vfile, args, i%args.ngpu) for i, vfile in enumerate(fileList)]
 	p = ThreadPoolExecutor(args.ngpu)
 	futures = [p.submit(mp_handler, j) for j in jobs]
 	_ = [r.result() for r in tqdm(as_completed(futures), total=len(futures))]
