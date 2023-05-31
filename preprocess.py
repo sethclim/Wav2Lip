@@ -104,7 +104,15 @@ def mp_handler(job):
 def main(args):
 	print('Started processing for {} with {} GPUs'.format(args.data_root, args.ngpu))
 
-	filelist = glob(path.join(args.data_root, '*.mp4'))
+	filelistDataRoot = glob(path.join(args.data_root, '*.mp4'))
+
+	alreadyProccedFileList = glob(path.join(args.preprocessed_root, args.subset, '*.mp4'))
+
+	filelist = list(filelistDataRoot - alreadyProccedFileList)
+
+	print("filelistDataRoot ", filelistDataRoot.count)
+	print("alreadyProccedFileList ", alreadyProccedFileList.count)
+	print("filelist ", filelist.count)
 
 	jobs = [(vfile, args, i%args.ngpu) for i, vfile in enumerate(filelist)]
 	p = ThreadPoolExecutor(args.ngpu)
@@ -112,9 +120,9 @@ def main(args):
 	_ = [r.result() for r in tqdm(as_completed(futures), total=len(futures))]
 
 	print('Dumping audios...')
-	print(filelist.count)
+	print(filelistDataRoot.count)
 
-	for vfile in tqdm(filelist):
+	for vfile in tqdm(filelistDataRoot, total=filelistDataRoot.count):
 		try:
 			process_audio_file(vfile, args)
 		except KeyboardInterrupt:
