@@ -112,7 +112,7 @@ def main(args):
 	fileList = []
 
 	for i in range(len(filelistDataRoot)):
-		name = filelistDataRoot[i].split(sep='\\')[1].split(sep=".")[0]
+		name = filelistDataRoot[i].split(sep='/')[2].split(sep=".")[0]
 		if name not in alreadyProccedFileList:
 			fileList.append(filelistDataRoot[i])
 
